@@ -8,6 +8,9 @@ public class PlayerMovement : MonoBehaviour
     public float moveSpeed;
 
     public float groundDrag;
+    
+    public float maxSlopeAngle;
+    private RaycastHit slopeHit;
 
     public float jumpForce;
     public float jumpCooldown;
@@ -38,8 +41,9 @@ public class PlayerMovement : MonoBehaviour
     }
     private void Update()
     {
+        Debug.DrawRay(transform.position, Vector3.down * (playerHeight * 0.5f + 1f), Color.red);
         grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround);
-
+        
         MyInput();
         SpeedControl();
 
@@ -76,6 +80,16 @@ public class PlayerMovement : MonoBehaviour
     {
         moveDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
 
+        if (OnSlope())
+        {
+            Vector3 slopeDirection = Vector3.ProjectOnPlane(moveDirection, slopeHit.normal).normalized;
+            rb.AddForce(slopeDirection * moveSpeed * 20f, ForceMode.Force);
+
+            if(rb.linearVelocity.y > 0)
+            {
+                rb.AddForce(Vector3.down * 80f, ForceMode.Force);
+            }
+        }
         if (grounded)
         {
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
@@ -106,5 +120,17 @@ public class PlayerMovement : MonoBehaviour
     public void ResetJump()
     {
         readyToJump = true;
+    }
+
+
+
+    private bool OnSlope()
+    {
+        if(Physics.Raycast(transform.position, Vector3.down, out slopeHit, playerHeight * 0.5f + 1f))
+        {
+            float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
+            return angle < maxSlopeAngle && angle != 0;
+        }
+        return false;
     }
 }
